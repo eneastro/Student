@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class Spikes : MonoBehaviour
 {
-    [SerializeField] float knockbackForce;
+    [SerializeField]float knockbackForce;
 
     void OnTriggerEnter2D(Collider2D other)
     {

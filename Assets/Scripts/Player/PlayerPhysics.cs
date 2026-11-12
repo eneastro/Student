@@ -10,16 +10,20 @@ public enum PlayerState
     Jumping,
     Firing,
     Hurt,
+    Stunned,
 }
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerPhysics : MonoBehaviour
 {
+    [SerializeField] SpriteRenderer spriteRenderer;
     [SerializeField] float speed;
     [SerializeField] float gravityModifier;
     [SerializeField] Rigidbody2D rigidBody2D;
     [SerializeField] float jumpSpeed;
     [SerializeField] float hurtJumpSpeed;
+    [SerializeField] float stunDuration;
+    [SerializeField] Color stunColor;
     [Header("Grounded")]
     [SerializeField] Vector2 groundCheckOffset;
     [SerializeField] Vector2 groundCheckSize;
@@ -42,15 +46,23 @@ public class PlayerPhysics : MonoBehaviour
     int direction;
     Vector2 bulletSpawnerInitialPosition;
 
+    float stunTimer;
+    Color originalColor;
+
     StateMachine stateMachine;
     State idleState;
     State movementState;
     State jumpingState;
     State firingState;
     State hurtState;
+    State stunnedState;
 
     void Awake()
     {
+        if (spriteRenderer == null)
+        {
+            spriteRenderer = GetComponent<SpriteRenderer>();
+        }
         initialGravity = rigidBody2D.gravityScale;
         direction = 1;
         bulletSpawnerInitialPosition = bulletSpawner.localPosition;
@@ -60,6 +72,7 @@ public class PlayerPhysics : MonoBehaviour
         jumpingState = CreateState(PlayerState.Jumping, JumpEnter, JumpUpdate, JumpExit);
         firingState = CreateState(PlayerState.Firing, FiringEnter, null, null);
         hurtState = CreateState(PlayerState.Hurt, HurtEnter, null, HurtExit);
+        stunnedState = CreateState(PlayerState.Stunned, StunnedEnter, StunnedUpdate, StunnedExit);
 
         stateMachine = new StateMachine();
         stateMachine.AddState(idleState);
@@ -67,6 +80,7 @@ public class PlayerPhysics : MonoBehaviour
         stateMachine.AddState(jumpingState);
         stateMachine.AddState(firingState);
         stateMachine.AddState(hurtState);
+        stateMachine.AddState(stunnedState);
     }
 
     void OnEnable()
@@ -296,6 +310,40 @@ public class PlayerPhysics : MonoBehaviour
         }
     }
 
+    public void Stun()
+    {
+        if (stateMachine.CurrentState == PlayerState.Stunned.ToString())
+        {
+            stunTimer = stunDuration;
+            return;
+        }
+        
+        ChangeState(PlayerState.Stunned);
+    }
+
+    void StunnedEnter()
+    {
+        horizontalSpeed = 0.0f;
+        velocity = Vector2.zero;
+        originalColor = spriteRenderer.color;
+        spriteRenderer.color = stunColor;
+        
+        stunTimer = stunDuration;
+    }
+
+    void StunnedUpdate()
+    {
+        stunTimer -= Time.deltaTime;
+        if (stunTimer <= 0.0f)
+        {
+            ChangeState(PlayerState.Idle);
+        }
+    }
+
+    void StunnedExit()
+    {
+        spriteRenderer.color = originalColor;
+    }
     void CheckGround()
     {
         Collider2D colliderDetected = Physics2D.OverlapBox(
@@ -304,7 +352,7 @@ public class PlayerPhysics : MonoBehaviour
             0.0f,
             groundMask);
         bool currentGroundedState = colliderDetected != null;
-        if (currentGroundedState && !isGrounded)
+        if (currentGroundedState && !isGrounded && stateMachine.CurrentState != PlayerState.Stunned.ToString())
         {
             ChangeState(PlayerState.Idle);
         }
