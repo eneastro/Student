@@ -14,7 +14,12 @@ public class MovingPlatform : MonoBehaviour
 
     float MyMoveTowards(float current, float target, float maxDelta)
     {
-        // TODO
+        float difference = target - current;
+        if (Mathf.Abs(difference) <= maxDelta)
+        {
+            return target;
+        }
+        return current + Mathf.Sign(difference) * maxDelta;
         return current;
     }
 }
