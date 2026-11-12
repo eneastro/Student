@@ -9,11 +9,25 @@ public class Respawner : MonoBehaviour
 
     void OnEnable()
     {
-        // TODO
+        GameEvents.OnTargetDestroyed += OnDestroyed;
     }
 
     void OnDisable()
     {
-        // TODO
+        GameEvents.OnTargetDestroyed -= OnDestroyed;
+    }
+    
+    void OnDestroyed(GameItem gameItem)
+    {
+        if (gameItem == GameItem.Gem)
+        {
+            StartCoroutine(Respawn());
+        }
+    }
+
+    IEnumerator Respawn()
+    {
+        yield return new WaitForSeconds(respawnDelay);
+        Instantiate(gemPrefab, spawnPoint.position, spawnPoint.rotation);
     }
 }
